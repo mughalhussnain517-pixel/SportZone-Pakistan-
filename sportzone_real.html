@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SportZone — Live Sports</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#17202a}
+header{background:#101820;color:#fff;padding:17px 6%;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+.logo{font-size:25px;font-weight:800}.logo span{color:#20c997}nav a{color:#fff;text-decoration:none;margin-left:18px;font-size:14px}
+.hero{padding:52px 6%;background:linear-gradient(135deg,#101820,#173b52);color:#fff}.hero h1{font-size:43px;margin:0 0 10px}.hero p{color:#cbd5df}
+.container{width:88%;max-width:1200px;margin:28px auto}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+button{border:0;border-radius:20px;padding:9px 15px;cursor:pointer;background:#e7ecef;font-weight:700}button.active{background:#20c997}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 4px 16px #00000012}
+.match{display:flex;justify-content:space-between;gap:15px;align-items:center;margin:16px 0}.team{font-weight:700;width:38%}.score{font-size:22px;font-weight:800;text-align:center}
+.live{color:#e63946;font-weight:800;font-size:12px}.muted{color:#68737d;font-size:13px}.status{background:#eef2f5;padding:5px 9px;border-radius:15px;font-size:12px}
+footer{background:#101820;color:#c5ccd2;padding:25px 6%;margin-top:45px;font-size:13px}
+a{color:#20c997}.error{padding:18px;background:#fff3cd;border-radius:10px}
+@media(max-width:650px){.hero h1{font-size:33px}nav{display:none}.container{width:92%}}
+</style>
+</head>
+<body>
+<header><div class="logo">Sport<span>Zone</span></div>
+<nav><a href="#live">Live</a><a href="#sports">Sports</a></nav></header>
+
+<section class="hero">
+<h1>Live Sports, Real Data.</h1>
+<p>Live and recent matches loaded from a sports-data API. Select a sport below.</p>
+</section>
+
+<main class="container">
+<section id="live">
+<h2>🔴 Live & Recent Matches</h2>
+<div class="tabs" id="tabs">
+<button class="active" data-sport="football">⚽ Football</button>
+<button data-sport="basketball">🏀 Basketball</button>
+<button data-sport="cricket">🏏 Cricket</button>
+<button data-sport="tennis">🎾 Tennis</button>
+</div>
+<div id="updated" class="muted">Loading real data…</div>
+<div id="matches" class="grid"></div>
+</section>
+
+<section id="sports" style="margin-top:38px">
+<h2>🏆 Sports</h2>
+<div class="grid">
+<div class="card">⚽ <b>Football</b><p class="muted">Live matches & results</p></div>
+<div class="card">🏀 <b>Basketball</b><p class="muted">Live matches & results</p></div>
+<div class="card">🏏 <b>Cricket</b><p class="muted">Live matches & results</p></div>
+<div class="card">🎾 <b>Tennis</b><p class="muted">Live matches & results</p></div>
+</div>
+</section>
+</main>
+
+<footer>
+<div>© 2026 SportZone</div>
+<div style="margin-top:8px">Live data provided by <a href="https://sportscore.com/" target="_blank" rel="noopener">SportScore</a>.</div>
+</footer>
+
+<script>
+const API="https://sportscore.com/api/widget/matches/";
+let sport="football";
+
+function esc(x){
+ return String(x??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+function card(m){
+ const live = String(m.status||"").toLowerCase()==="live";
+ const s1=m.home_score ?? "-"; const s2=m.away_score ?? "-";
+ return `<div class="card">
+   <div style="display:flex;justify-content:space-between">
+     <span class="${live?'live':'status'}">${live?'● LIVE':esc(m.status_text||m.status||'MATCH')}</span>
+     <span class="muted">${m.time?new Date(m.time).toLocaleString():''}</span>
+   </div>
+   <div class="match">
+     <div class="team">${esc(m.home)}</div>
+     <div class="score">${esc(s1)}<br><small>—</small><br>${esc(s2)}</div>
+     <div class="team" style="text-align:right">${esc(m.away)}</div>
+   </div>
+ </div>`;
+}
+async function load(){
+ const box=document.getElementById("matches");
+ document.getElementById("updated").textContent="Loading real "+sport+" data…";
+ box.innerHTML="";
+ try{
+   const r=await fetch(`${API}?sport=${encodeURIComponent(sport)}&limit=20`);
+   if(!r.ok) throw new Error("HTTP "+r.status);
+   const d=await r.json();
+   const list=d.matches||[];
+   if(!list.length){
+     box.innerHTML='<div class="error">No live/recent matches are available for this sport right now.</div>';
+   }else{
+     box.innerHTML=list.map(card).join("");
+   }
+   document.getElementById("updated").textContent="Updated: "+new Date().toLocaleTimeString();
+ }catch(e){
+   box.innerHTML='<div class="error"><b>Could not load live data.</b><br>Open this page with an internet connection. If your browser blocks the API request, the site needs a small server/proxy.</div>';
+   document.getElementById("updated").textContent="Data unavailable";
+ }
+}
+document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>{
+ document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("active"));
+ b.classList.add("active"); sport=b.dataset.sport; load();
+}));
+load();
+setInterval(load,60000);
+</script>
+</body>
+</html>
